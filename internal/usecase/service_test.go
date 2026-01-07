@@ -452,3 +452,29 @@ func TestItemUsecase_GetCategorySummary(t *testing.T) {
 		})
 	}
 }
+
+func TestItemUsecase_UpdateItem_Success(t *testing.T) {
+	mockRepo := new(MockItemRepository)
+	usecase := NewItemUsecase(mockRepo)
+
+	existingItem, _ := entity.NewItem("時計1", "時計", "ROLEX", 1000000, "2023-01-01")
+	existingItem.ID = 1
+
+	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(existingItem, nil)
+	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Item")).Return(nil)
+
+	newName := "時計2"
+	newPrice := 1200000
+	input := UpdateItemInput{
+		Name:          &newName,
+		PurchasePrice: &newPrice,
+	}
+
+	item, err := usecase.UpdateItem(context.Background(), 1, input)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "時計2", item.Name)
+	assert.Equal(t, 1200000, item.PurchasePrice)
+
+	mockRepo.AssertExpectations(t)
+}
