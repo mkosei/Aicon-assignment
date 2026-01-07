@@ -141,6 +141,16 @@ func (u *itemUsecase) GetCategorySummary(ctx context.Context) (*CategorySummary,
 	}, nil
 }
 
+// UpdateItem は指定されたIDのアイテムを部分更新します。
+// PATCH リクエストで渡されたフィールドのみを更新する設計です。
+// 引数:
+//   ctx   - リクエストのコンテキスト
+//   id    - 更新対象のアイテムID
+//   input - 更新内容を格納した構造体 (UpdateItemInput)
+// 戻り値:
+//   更新後の *entity.Item
+//   エラー発生時は nil と error
+
 func (u *itemUsecase) UpdateItem(ctx context.Context, id int64, input UpdateItemInput) (*entity.Item, error) {
 	item, err := u.itemRepo.FindByID(ctx, id)
 	if err != nil {
@@ -151,6 +161,8 @@ func (u *itemUsecase) UpdateItem(ctx context.Context, id int64, input UpdateItem
 	}
 
 	// nilチェックして部分更新
+	//    UpdateItemInput はすべてポインタなので、
+	//    nil であれば更新せず、値があれば更新する
 	if input.Name != nil {
 		item.Name = *input.Name
 	}
@@ -163,7 +175,8 @@ func (u *itemUsecase) UpdateItem(ctx context.Context, id int64, input UpdateItem
 
 	item.UpdatedAt = time.Now() // 更新日時セット
 
-	// DB 更新
+	// Repository を通してDBを更新
+	//    実際のDB UPDATE 処理は itemRepo.Update に委譲
 	if err := u.itemRepo.Update(ctx, item); err != nil {
 		return nil, err
 	}
