@@ -51,6 +51,11 @@ func (m *MockItemRepository) GetSummaryByCategory(ctx context.Context) (map[stri
 	return args.Get(0).(map[string]int), args.Error(1)
 }
 
+func (m *MockItemRepository) Update(ctx context.Context, item *entity.Item) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
 func TestNewItemUsecase(t *testing.T) {
 	mockRepo := new(MockItemRepository)
 	usecase := NewItemUsecase(mockRepo)

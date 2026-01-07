@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"Aicon-assignment/internal/domain/entity"
 	domainErrors "Aicon-assignment/internal/domain/errors"
@@ -14,6 +15,7 @@ type ItemUsecase interface {
 	CreateItem(ctx context.Context, input CreateItemInput) (*entity.Item, error)
 	DeleteItem(ctx context.Context, id int64) error
 	GetCategorySummary(ctx context.Context) (*CategorySummary, error)
+	UpdateItem(ctx context.Context, id int64, input UpdateItemInput) (*entity.Item, error) //追加
 }
 
 type CreateItemInput struct {
@@ -31,6 +33,12 @@ type CategorySummary struct {
 
 type itemUsecase struct {
 	itemRepo ItemRepository
+}
+
+type UpdateItemInput struct {
+	Name          *string `json:"name"`
+	Brand         *string `json:"brand"`
+	PurchasePrice *int    `json:"purchase_price"`
 }
 
 func NewItemUsecase(itemRepo ItemRepository) ItemUsecase {
@@ -131,4 +139,34 @@ func (u *itemUsecase) GetCategorySummary(ctx context.Context) (*CategorySummary,
 		Categories: summary,
 		Total:      total,
 	}, nil
+}
+
+func (u *itemUsecase) UpdateItem(ctx context.Context, id int64, input UpdateItemInput) (*entity.Item, error) {
+	item, err := u.itemRepo.FindByID(ctx, id)
+	if err != nil {
+		if domainErrors.IsNotFoundError(err) {
+			return nil, domainErrors.ErrItemNotFound
+		}
+		return nil, err
+	}
+
+	// nilチェックして部分更新
+	if input.Name != nil {
+		item.Name = *input.Name
+	}
+	if input.Brand != nil {
+		item.Brand = *input.Brand
+	}
+	if input.PurchasePrice != nil {
+		item.PurchasePrice = *input.PurchasePrice
+	}
+
+	item.UpdatedAt = time.Now() // 更新日時セット
+
+	// DB 更新
+	if err := u.itemRepo.Update(ctx, item); err != nil {
+		return nil, err
+	}
+
+	return item, nil
 }

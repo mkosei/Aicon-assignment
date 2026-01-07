@@ -22,4 +22,7 @@ type ItemRepository interface {
 
 	// GetSummaryByCategory returns item counts grouped by category (bonus feature)
 	GetSummaryByCategory(ctx context.Context) (map[string]int, error)
+	// Update updates an existing item's fields in the database.
+	// It should respect the entity's validation rules.
+	Update(ctx context.Context, item *entity.Item) error
 }

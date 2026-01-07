@@ -172,3 +172,18 @@ func scanItem(scanner interface {
 
 	return &item, nil
 }
+
+func (r *ItemRepository) Update(ctx context.Context, item *entity.Item) error {
+	query := `
+		UPDATE items
+		SET name=?, brand=?, purchase_price=?, updated_at=?
+		WHERE id=?`
+	_, err := r.Execute(ctx, query,
+		item.Name,
+		item.Brand,
+		item.PurchasePrice,
+		item.UpdatedAt,
+		item.ID,
+	)
+	return err
+}

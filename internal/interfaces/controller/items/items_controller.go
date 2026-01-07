@@ -14,6 +14,13 @@ type ItemHandler struct {
 	itemUsecase usecase.ItemUsecase
 }
 
+// PATCH用Request struct
+type UpdateItemRequest struct {
+	Name          *string `json:"name"`
+	Brand         *string `json:"brand"`
+	PurchasePrice *int    `json:"purchase_price"`
+}
+
 func NewItemHandler(itemUsecase usecase.ItemUsecase) *ItemHandler {
 	return &ItemHandler{
 		itemUsecase: itemUsecase,
@@ -149,4 +156,49 @@ func validateCreateItemInput(input usecase.CreateItemInput) []string {
 	}
 
 	return errs
+}
+
+// UpdateItem は PATCH /items/:id エンドポイント
+func (h *ItemHandler) UpdateItem(c echo.Context) error {
+	// 1️⃣ URLからID取得
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: "invalid item ID",
+		})
+	}
+
+	// 2️⃣ リクエストBodyをBind
+	var req UpdateItemRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: "invalid request format",
+		})
+	}
+
+	// 3️⃣ Usecase 型に変換（ポインタ付きで部分更新対応）
+	input := usecase.UpdateItemInput{
+		Name:          req.Name,
+		Brand:         req.Brand,
+		PurchasePrice: req.PurchasePrice,
+	}
+
+	// 4️⃣ Usecase に処理を委譲
+	item, err := h.itemUsecase.UpdateItem(c.Request().Context(), id, input)
+	if err != nil {
+		// NotFound エラー
+		if domainErrors.IsNotFoundError(err) {
+			return c.JSON(http.StatusNotFound, ErrorResponse{
+				Error: "item not found",
+			})
+		}
+		// バリデーションエラーやその他
+		return c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: err.Error(),
+		})
+	}
+
+	// 5️⃣ 成功レスポンス
+	return c.JSON(http.StatusOK, item)
 }
